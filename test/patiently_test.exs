@@ -34,10 +34,10 @@ defmodule PatientlyTest do
     )
 
     f = fn -> Irritable.iterate(irritable) end
-    assert :ok == Patiently.wait_for(f)
+    assert :ok == Patiently.wait_for(f, dwell: 10)
 
     Irritable.reset(irritable)
-    assert :error == Patiently.wait_for(f, 2 * tries, 3)
+    assert :error == Patiently.wait_for(f, max_tries: tries - 1, dwell: 10)
 
     Irritable.stop(irritable)
   end
@@ -49,11 +49,11 @@ defmodule PatientlyTest do
     )
 
     f = fn -> Irritable.iterate(irritable) end
-    assert :ok == Patiently.wait_for!(f)
+    assert :ok == Patiently.wait_for!(f, dwell: 10)
 
     Irritable.reset(irritable)
     assert_raise Patiently.GaveUp, fn ->
-      Patiently.wait_for!(f, 2 * tries, 3)
+      Patiently.wait_for!(f, max_tries: tries - 1, dwell: 10)
     end
 
     Irritable.stop(irritable)

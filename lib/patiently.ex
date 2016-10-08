@@ -14,17 +14,14 @@ defmodule Patiently do
   @default_dwell 100
   @default_tries 10
 
-  def wait_for(
-        condition,
-        dwell \\ @default_dwell,
-        max_tries \\ @default_tries)
-  when is_integer(dwell) and dwell >= 0
-  and is_integer(max_tries) and max_tries > 0 do
+  def wait_for(condition, opts \\ []) do
+    {dwell, max_tries} = process_opts(opts)
     wait_loop(condition, dwell, 0, max_tries)
   end
 
-  def wait_for!(condition, dwell \\ @default_dwell, max_tries \\ @default_tries) do
-    case wait_for(condition, dwell, max_tries) do
+  def wait_for!(condition, opts \\ []) do
+    {dwell, max_tries} = process_opts(opts)
+    case wait_for(condition, opts) do
       :ok -> :ok
      :error -> raise Patiently.GaveUp, {dwell, max_tries, condition}
     end
@@ -40,5 +37,12 @@ defmodule Patiently do
       :timer.sleep(dwell)
       wait_loop(condition, dwell, tries + 1, max_tries)
     end
+  end
+
+  defp process_opts(opts) do
+    {
+      Keyword.get(opts, :dwell, @default_dwell),
+      Keyword.get(opts, :max_tries, @default_tries)
+    }
   end
 end

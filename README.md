@@ -34,9 +34,11 @@ defmodule MyTest do
     Patiently.wait_for!(condition)
     
     # specify the dwell time and maximum number of tries
-    dwell = 10 # msec
-    max_tries = 100
-    Patiently.wait_for!(condition, dwell, max_tries)
+    Patiently.wait_for!(
+      condition,
+      dwell: 10, #msec
+      max_tries: 100
+    )
   end
 end
 ```
