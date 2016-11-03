@@ -15,34 +15,43 @@ defmodule Patiently do
   @default_tries 10
 
   def wait_for(condition, opts \\ []) do
-    {dwell, max_tries} = process_opts(opts)
-    wait_loop(condition, dwell, 0, max_tries)
+    wait_while(condition, &(!&1), opts)
   end
 
   def wait_for!(condition, opts \\ []) do
-    {dwell, max_tries} = process_opts(opts)
     case wait_for(condition, opts) do
       :ok -> :ok
-     :error -> raise Patiently.GaveUp, {dwell, max_tries, condition}
+      :error -> raise Patiently.GaveUp, {dwell(opts), max_tries(opts), condition}
     end
   end
 
-  defp wait_loop(condition, dwell, tries, max_tries) when tries >= max_tries do
-    :error
+  def wait_while(poller, condition, opts \\ []) do
+    wait_while_loop(poller, condition, 0, opts)
   end
-  defp wait_loop(condition, dwell, tries, max_tries) do
-    if condition.() do
-      :ok
+
+  defp wait_while_loop(poller, condition, tries, opts) do
+    value = poller.()
+    if condition.(value) do
+      if tries > max_tries(opts) do
+        :error
+      else
+        :timer.sleep(dwell(opts))
+        wait_while_loop(poller, condition, tries + 1, opts)
+      end
     else
-      :timer.sleep(dwell)
-      wait_loop(condition, dwell, tries + 1, max_tries)
+      :ok
     end
   end
 
-  defp process_opts(opts) do
-    {
-      Keyword.get(opts, :dwell, @default_dwell),
-      Keyword.get(opts, :max_tries, @default_tries)
-    }
+  def generic_loop(poller, condition, state, opts) do
+    state_out = poller.(state)
+  end
+
+  defp dwell(opts) do
+    Keyword.get(opts, :dwell, @default_dwell)
+  end
+
+  defp max_tries(opts) do
+    Keyword.get(opts, :max_tries, @default_tries)
   end
 end
