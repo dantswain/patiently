@@ -1,31 +1,45 @@
 defmodule Patiently do
-  defmodule GaveUp do
-    defexception [:message]
+  @moduledoc File.read!(Path.expand("../README.md", __DIR__))
 
+  @type condition :: (() -> boolean)
+  @type opt :: {:dwell, pos_integer} | {:max_tries, pos_integer}
+  @type opts :: [opt]
+
+  defmodule GaveUp do
+    @moduledoc """
+    Exception raised by Patiently when a condition fails to converge
+    """
+
+    defexception message: nil
+    @type t :: %__MODULE__{__exception__: true}
+
+    @doc false
+    @spec exception({pos_integer, pos_integer, Patiently.condition}) :: t
     def exception({dwell, max_tries, condition}) do
       message = "Gave waiting for #{inspect condition} after #{max_tries} " <>
         "iterations waiting #{dwell} msec between tries."
-      %Patiently.GaveUp{
-        message: message
-      }
+      %Patiently.GaveUp{message: message}
     end
   end
 
   @default_dwell 100
   @default_tries 10
 
+  @spec wait_for(condition, opts) :: :ok | :error
   def wait_for(condition, opts \\ []) do
     wait_while(condition, &(!&1), opts)
   end
 
+  @spec wait_for!(condition, opts) :: :ok | no_return
   def wait_for!(condition, opts \\ []) do
     case wait_for(condition, opts) do
       :ok -> :ok
-      :error -> raise Patiently.GaveUp, {dwell(opts), max_tries(opts), condition}
+      :error ->
+        raise Patiently.GaveUp, {dwell(opts), max_tries(opts), condition}
     end
   end
 
-  def wait_while(poller, condition, opts \\ []) do
+  defp wait_while(poller, condition, opts) do
     wait_while_loop(poller, condition, 0, opts)
   end
 
@@ -41,10 +55,6 @@ defmodule Patiently do
     else
       :ok
     end
-  end
-
-  def generic_loop(poller, condition, state, opts) do
-    state_out = poller.(state)
   end
 
   defp dwell(opts) do
