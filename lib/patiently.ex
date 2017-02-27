@@ -1,6 +1,8 @@
 defmodule Patiently do
   @moduledoc File.read!(Path.expand("../README.md", __DIR__))
 
+  @type iteration :: (() -> term)
+  @type predicate :: ((term) -> boolean)
   @type condition :: (() -> boolean)
   @type opt :: {:dwell, pos_integer} | {:max_tries, pos_integer}
   @type opts :: [opt]
@@ -14,9 +16,9 @@ defmodule Patiently do
     @type t :: %__MODULE__{__exception__: true}
 
     @doc false
-    @spec exception({pos_integer, pos_integer, Patiently.condition}) :: t
-    def exception({dwell, max_tries, condition}) do
-      message = "Gave waiting for #{inspect condition} after #{max_tries} " <>
+    @spec exception({pos_integer, pos_integer}) :: t
+    def exception({dwell, max_tries}) do
+      message = "Gave up waiting for condition after #{max_tries} " <>
         "iterations waiting #{dwell} msec between tries."
       %Patiently.GaveUp{message: message}
     end
@@ -27,16 +29,27 @@ defmodule Patiently do
 
   @spec wait_for(condition, opts) :: :ok | :error
   def wait_for(condition, opts \\ []) do
-    wait_while(condition, &(!&1), opts)
+    wait_while(condition, &(&1), opts)
   end
 
   @spec wait_for!(condition, opts) :: :ok | no_return
   def wait_for!(condition, opts \\ []) do
-    case wait_for(condition, opts) do
-      :ok -> :ok
-      :error ->
-        raise Patiently.GaveUp, {dwell(opts), max_tries(opts), condition}
-    end
+    ok_or_raise(wait_for(condition, opts), opts)
+  end
+
+  @spec wait_for(iteration, predicate, opts) :: :ok | :error
+  def wait_for(iteration, condition, opts) do
+    wait_while(iteration, condition, opts)
+  end
+
+  @spec wait_for!(iteration, predicate, opts) :: :ok | no_return
+  def wait_for!(iteration, condition, opts) do
+    ok_or_raise(wait_for(iteration, condition, opts), opts)
+  end
+
+  defp ok_or_raise(:ok, _), do: :ok
+  defp ok_or_raise(:error, opts) do
+    raise Patiently.GaveUp, {dwell(opts), max_tries(opts)}
   end
 
   defp wait_while(poller, condition, opts) do
@@ -46,14 +59,14 @@ defmodule Patiently do
   defp wait_while_loop(poller, condition, tries, opts) do
     value = poller.()
     if condition.(value) do
+      :ok
+    else
       if tries > max_tries(opts) do
         :error
       else
         :timer.sleep(dwell(opts))
         wait_while_loop(poller, condition, tries + 1, opts)
       end
-    else
-      :ok
     end
   end
 

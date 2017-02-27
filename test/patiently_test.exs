@@ -38,22 +38,29 @@ defmodule PatientlyTest do
 
     Irritable.reset(irritable)
     assert :error == Patiently.wait_for(f, max_tries: tries - 1, dwell: 10)
+    Irritable.reset(irritable)
+    assert_raise Patiently.GaveUp, fn ->
+      Patiently.wait_for!(f, max_tries: tries - 1, dwell: 10)
+    end
 
     Irritable.stop(irritable)
   end
 
-  test "waiting with an exception" do
+  test "waiting with condition and predicate" do
     tries = 5
     {:ok, irritable} = Irritable.start(
-      fn(iteration) -> iteration > tries end
+      fn(iteration) -> iteration end
     )
 
     f = fn -> Irritable.iterate(irritable) end
-    assert :ok == Patiently.wait_for!(f, dwell: 10)
+    p = fn(v) -> v > tries end
+    assert :ok == Patiently.wait_for(f, p, dwell: 10)
 
     Irritable.reset(irritable)
+    assert :error == Patiently.wait_for(f, p, max_tries: tries - 1, dwell: 10)
+    Irritable.reset(irritable)
     assert_raise Patiently.GaveUp, fn ->
-      Patiently.wait_for!(f, max_tries: tries - 1, dwell: 10)
+      Patiently.wait_for!(f, p, max_tries: tries - 1, dwell: 10)
     end
 
     Irritable.stop(irritable)
