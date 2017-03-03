@@ -73,6 +73,16 @@ defmodule Patiently do
     ok_or_raise(wait_flatten(iteration, predicate_or_min_length, opts), opts)
   end
 
+  @spec wait_for_death(pid, opts) :: :ok | :error
+  def wait_for_death(pid, opts \\ []) do
+    wait_for(fn -> !Process.alive?(pid) end, opts)
+  end
+
+  @spec wait_for_death!(pid, opts) :: :ok | no_return
+  def wait_for_death!(pid, opts \\ []) do
+    ok_or_raise(wait_for_death(pid, opts), opts)
+  end
+
   defp ok_or_raise(:ok, _), do: :ok
   defp ok_or_raise({:ok, acc}, _), do: {:ok, acc}
   defp ok_or_raise(:error, opts) do

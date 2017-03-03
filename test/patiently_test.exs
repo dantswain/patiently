@@ -132,4 +132,18 @@ defmodule PatientlyTest do
       Patiently.wait_flatten!(f, min_length, max_tries: tries - 1, dwell: 10)
     end
   end
+
+  test "waiting for a process to die" do
+    pid = spawn(fn -> :timer.sleep(20) end)
+    assert :ok == Patiently.wait_for_death(pid, dwell: 10)
+
+    pid = spawn(fn -> :timer.sleep(1000) end)
+    assert :error == Patiently.wait_for_death(pid, dwell: 10)
+
+    pid = spawn(fn -> :timer.sleep(20) end)
+    assert :ok == Patiently.wait_for_death!(pid, dwell: 10)
+
+    pid = spawn(fn -> :timer.sleep(1000) end)
+    assert_raise Patiently.GaveUp, fn -> Patiently.wait_for_death!(pid, dwell: 10) end
+  end
 end
