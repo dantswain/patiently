@@ -65,4 +65,16 @@ defmodule PatientlyTest do
 
     Irritable.stop(irritable)
   end
+
+  test "waiting with a reducer" do
+    tries = 5
+    expected_acc = Enum.into(tries-1..0, [])
+    expected_error_acc = Enum.into(tries-2..0, [])
+
+    r = fn(acc) -> [length(acc) | acc] end
+    p = fn(acc) -> length(acc) >= tries end
+    assert {:ok, expected_acc} == Patiently.wait_reduce(r, p, [], dwell: 10)
+    assert {:error, expected_error_acc} ==
+      Patiently.wait_reduce(r, p, [], max_tries: tries - 2, dwell: 10)
+  end
 end

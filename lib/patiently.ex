@@ -2,6 +2,7 @@ defmodule Patiently do
   @moduledoc File.read!(Path.expand("../README.md", __DIR__))
 
   @type iteration :: (() -> term)
+  @type reducer :: ((term) -> term)
   @type predicate :: ((term) -> boolean)
   @type condition :: (() -> boolean)
   @type opt :: {:dwell, pos_integer} | {:max_tries, pos_integer}
@@ -47,25 +48,45 @@ defmodule Patiently do
     ok_or_raise(wait_for(iteration, condition, opts), opts)
   end
 
+  @spec wait_reduce(reducer, predicate, term, opts) :: {:ok, term} | {:error, term}
+  def wait_reduce(reducer, predicate, acc0, opts) do
+    wait_reduce_loop(reducer, predicate, acc0, 0, opts)
+  end
+
+  @spec wait_reduce!(reducer, predicate, term, opts) :: {:ok, term} | no_return
+  def wait_reduce!(reducer, predicate, acc0, opts) do
+    ok_or_raise(wait_reduce_loop(reducer, predicate, acc0, 0, opts), opts)
+  end
+
   defp ok_or_raise(:ok, _), do: :ok
+  defp ok_or_raise({:ok, acc}, _), do: {:ok, acc}
   defp ok_or_raise(:error, opts) do
     raise Patiently.GaveUp, {dwell(opts), max_tries(opts)}
   end
-
-  defp wait_while(poller, condition, opts) do
-    wait_while_loop(poller, condition, 0, opts)
+  defp ok_or_raise({:error, _}, opts) do
+    raise Patiently.GaveUp, {dwell(opts), max_tries(opts)}
   end
 
-  defp wait_while_loop(poller, condition, tries, opts) do
-    value = poller.()
-    if condition.(value) do
-      :ok
+  defp just_status({:ok, _}), do: :ok
+  defp just_status({:error, _}), do: :error
+
+  defp wait_while(poller, condition, opts) do
+    reducer = fn(acc) -> [poller.() | acc] end
+    predicate = fn([most_recent | _]) -> condition.(most_recent) end
+    ok_or_err = wait_reduce_loop(reducer, predicate, [], 0, opts)
+    just_status(ok_or_err)
+  end
+
+  defp wait_reduce_loop(reducer, predicate, acc, tries, opts) do
+    acc_out = reducer.(acc)
+    if predicate.(acc_out) do
+      {:ok, acc_out}
     else
-      if tries > max_tries(opts) do
-        :error
+      if tries >= max_tries(opts) do
+        {:error, acc_out}
       else
         :timer.sleep(dwell(opts))
-        wait_while_loop(poller, condition, tries + 1, opts)
+        wait_reduce_loop(reducer, predicate, acc_out, tries + 1, opts)
       end
     end
   end
