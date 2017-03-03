@@ -58,6 +58,21 @@ defmodule Patiently do
     ok_or_raise(wait_reduce_loop(reducer, predicate, acc0, 0, opts), opts)
   end
 
+  @spec wait_flatten(iteration, predicate | pos_integer, opts) :: {:ok, [term]} | {:error, [term]}
+  def wait_flatten(iteration, predicate, opts \\ [])
+  def wait_flatten(iteration, min_length, opts) when is_integer(min_length) and min_length > 0 do
+    wait_flatten(iteration, fn(acc) -> length(acc) >= min_length end, opts)
+  end
+  def wait_flatten(iteration, predicate, opts) when is_function(predicate, 1) do
+    reducer = fn(acc) -> List.flatten([iteration.() | acc]) end
+    wait_reduce_loop(reducer, predicate, [], 0, opts)
+  end
+
+  @spec wait_flatten!(iteration, predicate | pos_integer, opts) ::  {:ok, [term]} | no_return
+  def wait_flatten!(iteration, predicate_or_min_length, opts) do
+    ok_or_raise(wait_flatten(iteration, predicate_or_min_length, opts), opts)
+  end
+
   defp ok_or_raise(:ok, _), do: :ok
   defp ok_or_raise({:ok, acc}, _), do: {:ok, acc}
   defp ok_or_raise(:error, opts) do

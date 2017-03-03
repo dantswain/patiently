@@ -68,18 +68,68 @@ defmodule PatientlyTest do
 
   test "waiting with a reducer" do
     tries = 5
-    expected_acc = Enum.into(tries-1..0, [])
-    expected_error_acc = Enum.into(tries-2..0, [])
+    expected_acc = Enum.into(tries..0, [])
+    expected_error_acc = Enum.into(tries-1..0, [])
 
     r = fn(acc) -> [length(acc) | acc] end
-    p = fn(acc) -> length(acc) >= tries end
+    p = fn(acc) -> length(acc) > tries end
     assert {:ok, expected_acc} == Patiently.wait_reduce(r, p, [], dwell: 10)
     assert {:error, expected_error_acc} ==
-      Patiently.wait_reduce(r, p, [], max_tries: tries - 2, dwell: 10)
+      Patiently.wait_reduce(r, p, [], max_tries: tries - 1, dwell: 10)
 
     assert {:ok, expected_acc} == Patiently.wait_reduce!(r, p, [], dwell: 10)
     assert_raise Patiently.GaveUp, fn ->
-      Patiently.wait_reduce!(r, p, [], max_tries: tries - 2, dwell: 10)
+      Patiently.wait_reduce!(r, p, [], max_tries: tries - 1, dwell: 10)
+    end
+  end
+
+  test "waiting with flat list" do
+    tries = 5
+    expected_acc = List.flatten(List.duplicate([1, 2, 3], (tries + 1)))
+    expected_error_acc = List.flatten(List.duplicate([1, 2, 3], tries))
+    min_length = 3 * tries + 1
+
+    f = fn() -> [1, 2, 3] end
+    p = fn(acc) -> length(acc) > 3 * tries end
+    assert {:ok, expected_acc} == Patiently.wait_flatten(f, p, dwell: 10)
+    assert {:ok, expected_acc} == Patiently.wait_flatten(f, min_length, dwell: 10)
+    assert {:error, expected_error_acc} ==
+      Patiently.wait_flatten(f, p, max_tries: tries - 1, dwell: 10)
+    assert {:error, expected_error_acc} ==
+      Patiently.wait_flatten(f, min_length, max_tries: tries - 1, dwell: 10)
+
+    assert {:ok, expected_acc} == Patiently.wait_flatten!(f, p, dwell: 10)
+    assert {:ok, expected_acc} == Patiently.wait_flatten!(f, min_length, dwell: 10)
+    assert_raise Patiently.GaveUp, fn ->
+      Patiently.wait_flatten!(f, p, max_tries: tries - 1, dwell: 10)
+    end
+    assert_raise Patiently.GaveUp, fn ->
+      Patiently.wait_flatten!(f, min_length, max_tries: tries - 1, dwell: 10)
+    end
+  end
+
+  test "waiting with flat list (scalar result)" do
+    tries = 5
+    expected_acc = List.duplicate("foo", (tries + 1))
+    expected_error_acc = List.duplicate("foo", tries)
+    min_length = tries + 1
+
+    f = fn() -> "foo" end
+    p = fn(acc) -> length(acc) > tries end
+    assert {:ok, expected_acc} == Patiently.wait_flatten(f, p, dwell: 10)
+    assert {:ok, expected_acc} == Patiently.wait_flatten(f, min_length, dwell: 10)
+    assert {:error, expected_error_acc} ==
+      Patiently.wait_flatten(f, p, max_tries: tries - 1, dwell: 10)
+    assert {:error, expected_error_acc} ==
+      Patiently.wait_flatten(f, min_length, max_tries: tries - 1, dwell: 10)
+
+    assert {:ok, expected_acc} == Patiently.wait_flatten!(f, p, dwell: 10)
+    assert {:ok, expected_acc} == Patiently.wait_flatten!(f, min_length, dwell: 10)
+    assert_raise Patiently.GaveUp, fn ->
+      Patiently.wait_flatten!(f, p, max_tries: tries - 1, dwell: 10)
+    end
+    assert_raise Patiently.GaveUp, fn ->
+      Patiently.wait_flatten!(f, min_length, max_tries: tries - 1, dwell: 10)
     end
   end
 end
