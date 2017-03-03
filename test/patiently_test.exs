@@ -76,5 +76,10 @@ defmodule PatientlyTest do
     assert {:ok, expected_acc} == Patiently.wait_reduce(r, p, [], dwell: 10)
     assert {:error, expected_error_acc} ==
       Patiently.wait_reduce(r, p, [], max_tries: tries - 2, dwell: 10)
+
+    assert {:ok, expected_acc} == Patiently.wait_reduce!(r, p, [], dwell: 10)
+    assert_raise Patiently.GaveUp, fn ->
+      Patiently.wait_reduce!(r, p, [], max_tries: tries - 2, dwell: 10)
+    end
   end
 end
