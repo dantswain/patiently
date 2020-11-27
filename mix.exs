@@ -8,8 +8,8 @@ defmodule Patiently.Mixfile do
       description: description(),
       package: package(),
       elixir: "~> 1.2",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       dialyzer: [plt_add_deps: :transitive],
       deps: deps()
     ]
@@ -36,9 +36,9 @@ defmodule Patiently.Mixfile do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.15", only: :dev, runtime: false},
-      {:credo, "~> 0.6.1", only: [:dev, :test], runtime: false},
-      {:dialyxir, "~> 0.5.0", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.23.0", only: :dev, runtime: false},
+      {:credo, "~> 1.5.1", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.0.0", only: :dev, runtime: false}
     ]
   end
 end

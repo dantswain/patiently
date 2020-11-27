@@ -1,5 +1,13 @@
 # Patiently
 
+[![Elixir CI](https://github.com/dantswain/patiently/workflows/Elixir%20CI/badge.svg)]
+[![Module Version](https://img.shields.io/hexpm/v/patiently.svg)](https://hex.pm/packages/patiently)
+[![Hex Docs](https://img.shields.io/badge/hex-docs-lightgreen.svg)](https://hexdocs.pm/patiently/)
+[![Total Download](https://img.shields.io/hexpm/dt/patiently.svg)](https://hex.pm/packages/patiently)
+[![License](https://img.shields.io/hexpm/l/patiently.svg)](https://hex.pm/packages/patiently)
+[![Last Updated](https://img.shields.io/github/last-commit/dantswain/patiently.svg)](https://github.com/dantswain/patiently/commits/main)
+
+
 Helpers for waiting on asynchronous events.
 
 Patiently is built with testing in mind, but there's nothing in the
