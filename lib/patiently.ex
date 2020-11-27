@@ -2,8 +2,8 @@ defmodule Patiently do
   @moduledoc File.read!(Path.expand("../README.md", __DIR__))
 
   @type iteration :: (() -> term)
-  @type reducer :: ((term) -> term)
-  @type predicate :: ((term) -> boolean)
+  @type reducer :: (term -> term)
+  @type predicate :: (term -> boolean)
   @type condition :: (() -> boolean)
   @type opt :: {:dwell, pos_integer} | {:max_tries, pos_integer}
   @type opts :: [opt]
@@ -19,8 +19,10 @@ defmodule Patiently do
     @doc false
     @spec exception({pos_integer, pos_integer}) :: t
     def exception({dwell, max_tries}) do
-      message = "Gave up waiting for condition after #{max_tries} " <>
-        "iterations waiting #{dwell} msec between tries."
+      message =
+        "Gave up waiting for condition after #{max_tries} " <>
+          "iterations waiting #{dwell} msec between tries."
+
       %Patiently.GaveUp{message: message}
     end
   end
@@ -30,7 +32,7 @@ defmodule Patiently do
 
   @spec wait_for(condition, opts) :: :ok | :error
   def wait_for(condition, opts \\ []) do
-    wait_while(condition, &(&1), opts)
+    wait_while(condition, & &1, opts)
   end
 
   @spec wait_for!(condition, opts) :: :ok | no_return
@@ -60,15 +62,17 @@ defmodule Patiently do
 
   @spec wait_flatten(iteration, predicate | pos_integer, opts) :: {:ok, [term]} | {:error, [term]}
   def wait_flatten(iteration, predicate, opts \\ [])
+
   def wait_flatten(iteration, min_length, opts) when is_integer(min_length) and min_length > 0 do
-    wait_flatten(iteration, fn(acc) -> length(acc) >= min_length end, opts)
+    wait_flatten(iteration, fn acc -> length(acc) >= min_length end, opts)
   end
+
   def wait_flatten(iteration, predicate, opts) when is_function(predicate, 1) do
-    reducer = fn(acc) -> List.flatten([iteration.() | acc]) end
+    reducer = fn acc -> List.flatten([iteration.() | acc]) end
     wait_reduce_loop(reducer, predicate, [], 0, opts)
   end
 
-  @spec wait_flatten!(iteration, predicate | pos_integer, opts) ::  {:ok, [term]} | no_return
+  @spec wait_flatten!(iteration, predicate | pos_integer, opts) :: {:ok, [term]} | no_return
   def wait_flatten!(iteration, predicate_or_min_length, opts) do
     ok_or_raise(wait_flatten(iteration, predicate_or_min_length, opts), opts)
   end
@@ -85,9 +89,11 @@ defmodule Patiently do
 
   defp ok_or_raise(:ok, _), do: :ok
   defp ok_or_raise({:ok, acc}, _), do: {:ok, acc}
+
   defp ok_or_raise(:error, opts) do
     raise Patiently.GaveUp, {dwell(opts), max_tries(opts)}
   end
+
   defp ok_or_raise({:error, _}, opts) do
     raise Patiently.GaveUp, {dwell(opts), max_tries(opts)}
   end
@@ -96,14 +102,15 @@ defmodule Patiently do
   defp just_status({:error, _}), do: :error
 
   defp wait_while(poller, condition, opts) do
-    reducer = fn(acc) -> [poller.() | acc] end
-    predicate = fn([most_recent | _]) -> condition.(most_recent) end
+    reducer = fn acc -> [poller.() | acc] end
+    predicate = fn [most_recent | _] -> condition.(most_recent) end
     ok_or_err = wait_reduce_loop(reducer, predicate, [], 0, opts)
     just_status(ok_or_err)
   end
 
   defp wait_reduce_loop(reducer, predicate, acc, tries, opts) do
     acc_out = reducer.(acc)
+
     if predicate.(acc_out) do
       {:ok, acc_out}
     else

@@ -8,8 +8,8 @@ defmodule Patiently.Mixfile do
       description: description(),
       package: package(),
       elixir: "~> 1.2",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       dialyzer: [plt_add_deps: :transitive],
       deps: deps()
     ]
