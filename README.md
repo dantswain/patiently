@@ -1,5 +1,7 @@
 # Patiently
 
+## NOTE: This repository now uses "main" as the primary branch.
+
 Helpers for waiting on asynchronous events.
 
 Patiently is built with testing in mind, but there's nothing in the
